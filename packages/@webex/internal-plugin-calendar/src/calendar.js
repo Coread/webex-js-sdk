@@ -319,11 +319,10 @@ const Calendar = WebexPlugin.extend({
   scheduleMeeting(options) {
     const body = {};
 
-    // webexOptions must be a valid JSON object even if empty
-    body.webexOptions = {};
+    const webexOptions = {};
 
     // TODO: work out what these are all for
-    const webexOptions = [
+    const webexOptionNames = [
       'meetingUuid',
       'password',
       'scheduleTemplateId',
@@ -345,9 +344,12 @@ const Calendar = WebexPlugin.extend({
       'excludePassword',
     ];
 
-    webexOptions.forEach((optionName) => {
-      body.webexOptions[optionName] = options[optionName];
+    webexOptionNames.forEach((optionName) => {
+      webexOptions[optionName] = options[optionName];
     });
+
+    // webexOptions must be a valid JSON object even if empty
+    body.webexOptions = JSON.stringify(webexOptions);
 
     if (options.timezone) {
       body.timezome = undefined;
