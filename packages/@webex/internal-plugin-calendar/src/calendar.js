@@ -43,6 +43,7 @@
  */
 
 import btoa from 'btoa';
+import uuid from 'uuid';
 import {WebexPlugin} from '@webex/webex-core';
 
 import CalendarCollection from './collection';
@@ -52,7 +53,7 @@ const Calendar = WebexPlugin.extend({
   namespace: 'Calendar',
 
   /**
-   * registered value indicating events registration is successful
+   * registered value indicating7 events registration is successful
    * @instance
    * @type {Boolean}
    * @memberof Calendar
@@ -306,6 +307,90 @@ const Calendar = WebexPlugin.extend({
         return Promise.all(promises)
           .then(() => meetingObjects);
       });
+  },
+
+  /**
+   * Retrieves a collection of meetings based on the request parameters
+   * @param {Object} options
+   * @param {Date} options.fromDate the start of the time range
+   * @param {Date} options.toDate the end of the time range
+   * @returns {Promise} Resolves with an array of meetings
+   */
+  scheduleMeeting(options) {
+    const body = {};
+
+    // webexOptions must be a valid JSON object even if empty
+    body.webexOptions = {};
+
+    // TODO: work out what these are all for
+    const webexOptions = [
+      'meetingUuid',
+      'password',
+      'scheduleTemplateId',
+      'sessionTypeId',
+      'cohostOption',
+      'hostId',
+      'defaultAudioType',
+      'entryAndExitToneOption',
+      'joinBeforeHostTime',
+      'confAutoLockMinutes',
+      'isEnabledJoinBeforeHost',
+      'isEnabledAttendeeToUnmuteSelf',
+      'muteUponEntry',
+      'turnOnBreakoutSessions',
+      'isEnabledConfAutoLock',
+      'isEnabledGlobalCallIn',
+      'isEnabledTollFree',
+      'publicMeeting',
+      'excludePassword',
+    ];
+
+    webexOptions.forEach((optionName) => {
+      body.webexOptions[optionName] = options[optionName];
+    });
+
+    if (options.timezone) {
+      body.timezome = undefined;
+    }
+
+    body.duration = options.duration; // minutes
+    body.start = options.start; // timestamp
+    body.subject = options.subject;
+    body.requestUUID = uuid.v4();
+
+    // one of [SCHEDULED_PMR, SCHEDULED_SPACE, SPACE, SCHEDULED_KEYWORD, SCHEDULED, CALENDAR, SCHEDULED_LARGE_EVENT]
+    body.scheduledMeetingType = options.scheduledMeetingType;
+
+    // one of SINGLE, RECURRING_MASTER, OCCURRENCE, MODIFIED_EXCEPTION
+    body.meetingType = options.meetingType;
+
+    if (options.scheduleExternally) {
+      body.crossLaunchScheduled = options.scheduleExternally;
+    }
+
+    if (options.encryptedNotes) {
+      body.notes = options.encryptedNotes;
+    }
+
+    // [{email: '', displayName: '', 'attendeeType: [OPTIONAL, REQUIRED], 'privileges': <string>}]
+    if (options.attendees) {
+      body.attendees = options.attendees;
+    }
+
+    if (options.notifyAttendeesScope) {
+      body.notifyAttendeesScope = options.notifyAttendeesScope;
+    }
+
+    if (options.conversationUrl) {
+      body.conversationUrl = options.conversationUrl;
+    }
+
+    return this.request({
+      method: 'POST',
+      service: 'calendar',
+      resource: 'calendarEvents',
+      body,
+    });
   }
 });
 

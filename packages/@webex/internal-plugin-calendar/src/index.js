@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /*!
  * Copyright (c) 2015-2020 Cisco Systems, Inc. See LICENSE file.
  */
@@ -16,6 +17,22 @@ registerInternalPlugin('calendar', Calendar, {
   config,
   payloadTransformer: {
     predicates: [
+      {
+        name: 'transformMeetingCreate',
+        direction: 'outbound',
+        test(ctx, event) {
+          if (event.service === 'calendar' && event.resource === 'calendarEvents' && event.method === 'POST') {
+            console.log('event transformer for create', event);
+
+            return Promise.resolve(true);
+          }
+
+          return Promise.resolve(false);
+        },
+        extract(event) {
+          return Promise.resolve(event.body);
+        }
+      },
       {
         name: 'transformMeetingNotes',
         direction: 'inbound',
@@ -151,6 +168,37 @@ registerInternalPlugin('calendar', Calendar, {
           ]));
 
           return Promise.all(decryptedParticipants);
+        }
+      },
+      {
+        name: 'transformMeetingCreate',
+        direction: 'outbound',
+        fn(ctx, object) {
+          if (!object) {
+            return Promise.resolve();
+          }
+
+          return ctx.webex.internal.encryption.kms.createUnboundKeys({count: 1})
+            .then((keys) => {
+              const key = keys[0];
+
+              // eslint-disable-next-line no-param-reassign
+              object.encryptionKeyUrl = key.uri;
+
+              const promises = [
+                ctx.transform('encryptTextProp', 'subject', key, object),
+                ctx.transform('encryptTextProp', 'webexOptions', key, object)
+              ];
+
+              if (object.attendees) {
+                object.attendees.forEach((attendee) => {
+                  promises.push(ctx.transform('encryptTextProp', 'displayName', key, attendee));
+                  promises.push(ctx.transform('encryptTextProp', 'email', key, attendee));
+                });
+              }
+
+              return Promise.all(promises);
+            });
         }
       }
     ]
