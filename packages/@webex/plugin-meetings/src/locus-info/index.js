@@ -1016,6 +1016,17 @@ export default class LocusInfo extends EventsScope {
         );
       }
 
+      if (parsedSelves.updates.breakoutsChanged) {
+        this.emitScoped(
+          {
+            file: 'locus-info',
+            function: 'updateSelf',
+          },
+          LOCUSINFO.EVENTS.SELF_MEETING_BREAKOUTS_CHANGED,
+          {breakouts: parsedSelves.current.breakouts}
+        );
+      }
+
       if (parsedSelves.updates.isMediaInactiveOrReleased) {
         this.emitScoped(
           {

@@ -60,12 +60,15 @@ SelfUtils.parse = (self, deviceId) => {
       isUserUnadmitted: self.state === _IDLE_ && joinedWith?.intent?.type === _WAIT_,
       layout: SelfUtils.getLayout(self),
       canNotViewTheParticipantList: SelfUtils.canNotViewTheParticipantList(self),
-      isSharingBlocked: SelfUtils.isSharingBlocked(self)
+      isSharingBlocked: SelfUtils.isSharingBlocked(self),
+      breakouts: SelfUtils.getBreakouts(self),
     };
   }
 
   return null;
 };
+
+SelfUtils.getBreakouts = (self) => self?.controls?.breakout?.sessions;
 
 SelfUtils.getLayout = (self) => (Array.isArray(self?.controls?.layouts) ? self.controls.layouts[0].type : undefined);
 
@@ -103,6 +106,7 @@ SelfUtils.getSelves = (oldSelf, newSelf, deviceId) => {
 
   updates.canNotViewTheParticipantListChanged = previous?.canNotViewTheParticipantList !== current.canNotViewTheParticipantList;
   updates.isSharingBlockedChanged = previous?.isSharingBlocked !== current.isSharingBlocked;
+  updates.breakoutsChanged = SelfUtils.breakoutsChanged(previous, current);
 
   return {
     previous,
@@ -127,6 +131,7 @@ SelfUtils.isJoined = (self) => self?.state === _JOINED_;
  */
 SelfUtils.layoutChanged = (previous, current) => current?.layout && previous?.layout !== current?.layout;
 
+SelfUtils.breakoutsChanged = (previous, current) => JSON.stringify(previous?.breakouts) !== JSON.stringify(current?.breakouts);
 
 SelfUtils.isMediaInactive = (previous, current) => {
   if (

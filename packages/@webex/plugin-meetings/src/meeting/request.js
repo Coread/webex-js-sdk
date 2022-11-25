@@ -46,6 +46,7 @@ export default class MeetingRequest extends StatelessWebexPlugin {
    * @param {boolean} options.pin
    * @param {boolean} options.moveToResource
    * @param {Object} options.roapMessage
+   * @param {boolean} options.breakoutsSupported
    * @returns {Promise}
    */
   async joinMeeting(options) {
@@ -63,8 +64,11 @@ export default class MeetingRequest extends StatelessWebexPlugin {
       pin,
       moveToResource,
       roapMessage,
-      preferTranscoding
+      preferTranscoding,
+      breakoutsSupported,
     } = options;
+
+    console.log('#####join meeting breakout', breakoutsSupported);
 
     LoggerProxy.logger.info(
       'Meeting:request#joinMeeting --> Joining a meeting',
@@ -90,6 +94,10 @@ export default class MeetingRequest extends StatelessWebexPlugin {
         preferTranscoding: preferTranscoding ?? true
       }
     };
+
+    if (breakoutsSupported) {
+      body.deviceCapabilities = ['BREAKOUTS_SUPPORTED'];
+    }
 
     if (this.webex.meetings.clientRegion) {
       body.device.countryCode = this.webex.meetings.clientRegion.countryCode;

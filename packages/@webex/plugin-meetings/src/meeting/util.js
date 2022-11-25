@@ -96,7 +96,8 @@ MeetingUtil.joinMeeting = (meeting, options) => {
       pin: options.pin,
       moveToResource: options.moveToResource,
       preferTranscoding: options.preferTranscoding,
-      asResourceOccupant: options.asResourceOccupant
+      asResourceOccupant: options.asResourceOccupant,
+      breakoutsSupported: options.breakoutsSupported
     })
     .then((res) => {
       Metrics.postEvent({

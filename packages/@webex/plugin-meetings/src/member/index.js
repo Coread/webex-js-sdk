@@ -73,6 +73,13 @@ export default class Member {
     */
     this.isHandRaised = null;
     /**
+     * @instance
+     * @type {Boolean}
+     * @public
+     * @memberof Member
+    */
+    this.supportsBreakouts = null;
+    /**
       * @instance
       * @type {Boolean}
       * @public
@@ -214,6 +221,7 @@ export default class Member {
       this.isAudioMuted = MemberUtil.isAudioMuted(participant);
       this.isVideoMuted = MemberUtil.isVideoMuted(participant);
       this.isHandRaised = MemberUtil.isHandRaised(participant);
+      this.supportsBreakouts = MemberUtil.isSupportsBreakouts(participant);
       this.isGuest = MemberUtil.isGuest(participant);
       this.isUser = MemberUtil.isUser(participant);
       this.isDevice = MemberUtil.isDevice(participant);

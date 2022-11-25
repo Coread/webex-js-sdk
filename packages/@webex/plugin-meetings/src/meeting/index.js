@@ -2101,6 +2101,20 @@ export default class Meeting extends StatelessWebexPlugin {
       );
     });
 
+    this.locusInfo.on(LOCUSINFO.EVENTS.SELF_MEETING_BREAKOUTS_CHANGED, (payload) => {
+      Trigger.trigger(
+        this,
+        {
+          file: 'meeting/index',
+          function: 'setUpLocusInfoSelfListener'
+        },
+        EVENT_TRIGGERS.MEETING_SELF_BREAKOUTS_CHANGED,
+        {
+          payload
+        }
+      );
+    });
+
     this.locusInfo.on(LOCUSINFO.EVENTS.SELF_IS_SHARING_BLOCKED_CHANGE, (payload) => {
       Trigger.trigger(
         this,

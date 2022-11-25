@@ -28,6 +28,8 @@ const registrationStatusElm = document.querySelector('#registration-status');
 const integrationEnv = document.getElementById('integration-env');
 const turnDiscoveryCheckbox = document.getElementById('enable-turn-discovery');
 const eventsList = document.getElementById('events-list');
+const breakoutsList = document.getElementById('breakouts-list');
+const breakoutTable = document.getElementById('breakout-table');
 
 // Disable screenshare on join in Safari patch
 const isSafari = /Version\/[\d.]+.*Safari/.test(navigator.userAgent);
@@ -232,6 +234,7 @@ const createMeetingActionElm = document.querySelector('#create-meeting-action');
 const meetingsJoinDeviceElm = document.querySelector('#meetings-join-device');
 const meetingsJoinPinElm = document.querySelector('#meetings-join-pin');
 const meetingsJoinModeratorElm = document.querySelector('#meetings-join-moderator');
+const meetingsBreakoutSupportElm = document.querySelector('#meetings-join-breakout-enabled');
 const meetingsListCollectElm = document.querySelector('#meetings-list-collect');
 const meetingsListMsgElm = document.querySelector('#meetings-list-msg');
 const meetingsListElm = document.querySelector('#meetings-list');
@@ -443,9 +446,12 @@ function joinMeeting({withMedia, withDevice} = {withMedia: false, withDevice: fa
     getMediaDevices();
   }
 
+  console.log('BREAKOUTS2', meetingsBreakoutSupportElm.checked);
+
   const joinOptions = {
     pin: meetingsJoinPinElm.value,
     moderator: meetingsJoinModeratorElm.checked,
+    breakoutsSupported: meetingsBreakoutSupportElm.checked,
     moveToResource: false,
     resourceId,
     receiveTranscription: receiveTranscriptionOption
@@ -462,6 +468,11 @@ function joinMeeting({withMedia, withDevice} = {withMedia: false, withDevice: fa
         meeting.members.on('members:update', (res) => {
           console.log('member update', res);
           viewParticipants();
+        });
+
+        meeting.on('meeting:self:breakoutsChanged', (res) => {
+          console.log('breakouts changed', res);
+          viewBreakouts(res);
         });
 
         eventsList.innerText = '';
@@ -1170,6 +1181,7 @@ async function stopScreenShare() {
 
 function updateLocalVideoStream(localStream) {
   const [currLocalStream, currLocalShare] = currentMediaStreams;
+
   currentMediaStreams = [localStream || currLocalStream, currLocalShare];
 
   meetingStreamsLocalVideo.srcObject = new MediaStream(localStream.getVideoTracks());
@@ -1183,7 +1195,7 @@ function setLocalMeetingQuality() {
   meeting.setLocalVideoQuality(level)
     .then((localStream) => {
       toggleSourcesQualityStatus.innerText = `Local meeting quality level set to ${level}!`;
-      updateLocalVideoStream(localStream)
+      updateLocalVideoStream(localStream);
       console.log('MeetingControls#setLocalMeetingQuality() :: Meeting quality level set successfully!');
       getLocalMediaSettings();
     })
@@ -1241,19 +1253,23 @@ function clearMediaDeviceList() {
 
 function getLocalMediaSettings() {
   const meeting = getCurrentMeeting();
-  if(meeting && meeting.mediaProperties.videoTrack) {
+
+  if (meeting && meeting.mediaProperties.videoTrack) {
     const videoSettings = meeting.mediaProperties.videoTrack.getSettings();
     const {frameRate, height} = videoSettings;
+
     localVideoResElm.innerText = `${height}p ${Math.round(frameRate)}fps`;
   }
 }
 
 function getRemoteMediaSettings() {
   const meeting = getCurrentMeeting();
-  if(meeting && meeting.mediaProperties.remoteVideoTrack){
-      const videoSettings = meeting.mediaProperties.remoteVideoTrack.getSettings();
-      const {frameRate, height} = videoSettings;
-      remoteVideoResElm.innerText = `${height}p ${Math.round(frameRate)}fps`;
+
+  if (meeting && meeting.mediaProperties.remoteVideoTrack) {
+    const videoSettings = meeting.mediaProperties.remoteVideoTrack.getSettings();
+    const {frameRate, height} = videoSettings;
+
+    remoteVideoResElm.innerText = `${height}p ${Math.round(frameRate)}fps`;
   }
 }
 
@@ -1763,6 +1779,72 @@ function transferHostToMember(transferButton) {
   }
 }
 
+function viewBreakouts(event) {
+  const breakouts = event?.payload?.breakouts;
+  const {active, allowed, assigned} = breakouts ?? {};
+
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+
+  const theadRow = document.createElement('tr');
+  const th1 = document.createElement('th');
+  const th2 = document.createElement('th');
+  const th3 = document.createElement('th');
+
+  th1.innerText = 'Active';
+  th2.innerText = 'Allowed';
+  th3.innerText = 'Assigned';
+
+  theadRow.appendChild(th1);
+  theadRow.appendChild(th2);
+  theadRow.appendChild(th3);
+
+  const tbodyRow = document.createElement('tr');
+  const tdActive = document.createElement('td');
+  const tdAllowed = document.createElement('td');
+  const tdAssigned = document.createElement('td');
+
+  tbodyRow.appendChild(tdActive);
+  tbodyRow.appendChild(tdAllowed);
+  tbodyRow.appendChild(tdAssigned);
+
+  if (active) {
+    active.forEach((session) => {
+      const sessionNameEl = document.createElement('div');
+
+      sessionNameEl.innerText = session.name;
+      tdActive.appendChild(sessionNameEl);
+    });
+  }
+
+  if (allowed) {
+    allowed.forEach((session) => {
+      const sessionNameEl = document.createElement('div');
+
+      sessionNameEl.innerText = session.name;
+      tdAllowed.appendChild(sessionNameEl);
+    });
+  }
+
+  if (assigned) {
+    assigned.forEach((session) => {
+      const sessionNameEl = document.createElement('div');
+
+      sessionNameEl.innerText = session.name;
+      tdAssigned.appendChild(sessionNameEl);
+    });
+  }
+
+  thead.appendChild(theadRow);
+  tbody.appendChild(tbodyRow);
+  table.appendChild(thead);
+  table.appendChild(tbody);
+
+  breakoutTable.innerHTML = '';
+  breakoutTable.appendChild(table);
+}
+
 function viewParticipants() {
   function createLabel(id, value = '') {
     const label = document.createElement('label');
@@ -1789,16 +1871,19 @@ function viewParticipants() {
     const th2 = document.createElement('th');
     const th3 = document.createElement('th');
     const th4 = document.createElement('th');
+    const th5 = document.createElement('th');
 
     th1.innerText = 'NAME';
     th2.innerText = 'VIDEO';
     th3.innerText = 'AUDIO';
     th4.innerText = 'STATUS';
+    th5.innerText = 'SUPPORTS BREAKOUTS';
 
     tr.appendChild(th1);
     tr.appendChild(th2);
     tr.appendChild(th3);
     tr.appendChild(th4);
+    tr.appendChild(th5);
 
     return tr;
   }
@@ -1809,10 +1894,12 @@ function viewParticipants() {
     const td2 = document.createElement('td');
     const td3 = document.createElement('td');
     const td4 = document.createElement('td');
+    const td5 = document.createElement('td');
     const label1 = createLabel(member.id);
     const label2 = createLabel(member.id, member.isVideoMuted ? 'NO' : 'YES');
     const label3 = createLabel(member.id, member.isAudioMuted ? 'NO' : 'YES');
     const label4 = createLabel(member.id, member.status);
+    const label5 = createLabel(member.id, member.supportsBreakouts ? 'YES' : 'NO');
 
     const radio = document.createElement('input');
 
@@ -1831,10 +1918,13 @@ function viewParticipants() {
     if (member.isInLobby) td4.appendChild(createButton('Admit', admitMember));
     else td4.appendChild(label4);
 
+    td5.appendChild(label5);
+
     tr.appendChild(td1);
     tr.appendChild(td2);
     tr.appendChild(td3);
     tr.appendChild(td4);
+    tr.appendChild(td5);
 
     return tr;
   }
