@@ -41,7 +41,7 @@ module.exports = (
       'eval-cheap-module-source-map' :
       'source-map',
   devServer: {
-    https: true,
+    https: false,
     port: process.env.PORT || 8000,
     static: './docs',
   },

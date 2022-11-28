@@ -472,7 +472,12 @@ function joinMeeting({withMedia, withDevice} = {withMedia: false, withDevice: fa
 
         meeting.on('meeting:self:breakoutsChanged', (res) => {
           console.log('breakouts changed', res);
-          viewBreakouts(res);
+          viewBreakouts();
+        });
+
+        meeting.on('meeting:breakout:update', (res) => {
+          console.log('breakouts update', res);
+          viewBreakouts();
         });
 
         eventsList.innerText = '';
@@ -1780,7 +1785,10 @@ function transferHostToMember(transferButton) {
 }
 
 function viewBreakouts(event) {
-  const breakouts = event?.payload?.breakouts;
+  const meeting = getCurrentMeeting();
+
+  const {breakouts} = meeting;
+  const {breakout} = meeting.locusInfo.controls;
   const {active, allowed, assigned} = breakouts ?? {};
 
   const table = document.createElement('table');
@@ -1791,23 +1799,40 @@ function viewBreakouts(event) {
   const th1 = document.createElement('th');
   const th2 = document.createElement('th');
   const th3 = document.createElement('th');
+  const th4 = document.createElement('th');
 
   th1.innerText = 'Active';
   th2.innerText = 'Allowed';
   th3.innerText = 'Assigned';
+  th4.innerText = 'Current';
 
   theadRow.appendChild(th1);
   theadRow.appendChild(th2);
   theadRow.appendChild(th3);
+  theadRow.appendChild(th4);
 
   const tbodyRow = document.createElement('tr');
   const tdActive = document.createElement('td');
   const tdAllowed = document.createElement('td');
   const tdAssigned = document.createElement('td');
+  const tdCurrent = document.createElement('td');
 
   tbodyRow.appendChild(tdActive);
   tbodyRow.appendChild(tdAllowed);
   tbodyRow.appendChild(tdAssigned);
+  tbodyRow.appendChild(tdCurrent);
+
+  const createJoinSessionButton = (sessionId, groupId) => {
+    const button = document.createElement('button');
+
+    button.innerText = 'Join';
+
+    button.onclick = () => {
+      meeting.moveToSession(sessionId, groupId);
+    };
+
+    return button;
+  };
 
   if (active) {
     active.forEach((session) => {
@@ -1815,6 +1840,7 @@ function viewBreakouts(event) {
 
       sessionNameEl.innerText = session.name;
       tdActive.appendChild(sessionNameEl);
+      tdActive.appendChild(createJoinSessionButton(session.sessionId, session.groupId));
     });
   }
 
@@ -1824,6 +1850,7 @@ function viewBreakouts(event) {
 
       sessionNameEl.innerText = session.name;
       tdAllowed.appendChild(sessionNameEl);
+      tdAllowed.appendChild(createJoinSessionButton(session.sessionId, session.groupId));
     });
   }
 
@@ -1833,7 +1860,15 @@ function viewBreakouts(event) {
 
       sessionNameEl.innerText = session.name;
       tdAssigned.appendChild(sessionNameEl);
+      tdAssigned.appendChild(createJoinSessionButton(session.sessionId, session.groupId));
     });
+  }
+
+  if (breakout) {
+    const currentNameEl = document.createElement('div');
+
+    currentNameEl.innerText = breakout.sessionType === 'BREAKOUT' ? breakout.name : 'Main session';
+    tdCurrent.append(currentNameEl);
   }
 
   thead.appendChild(theadRow);

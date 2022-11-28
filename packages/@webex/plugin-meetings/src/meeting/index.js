@@ -5165,6 +5165,24 @@ export default class Meeting extends StatelessWebexPlugin {
   }
 
   /**
+   * Move to a breakout session
+   * @returns {Promise}
+   * @param {String} sessionId the session ID of the breakout
+   * @param {String} groupId the session ID of the breakout
+   * @public
+   * @memberof Meeting
+   */
+  moveToSession(sessionId, groupId) {
+    const breakoutUrl = this.locusInfo.controls?.breakout?.url;
+
+    if (!breakoutUrl) {
+      throw new ParameterError('No breakout URL');
+    }
+
+    return this.meetingRequest.moveToSession({breakoutUrl, sessionId, groupId});
+  }
+
+  /**
    * Intiate a recording of this meeting
    * @returns {Promise}
    * @public

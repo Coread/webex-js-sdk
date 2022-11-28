@@ -646,6 +646,7 @@ export default class LocusInfo extends EventsScope {
           hasMeetingContainerChanged,
           hasTranscribeChanged,
           hasEntryExitToneChanged,
+          hasBreakoutChanged,
         },
         current,
       } = ControlsUtils.getControls(this.controls, controls);
@@ -710,6 +711,22 @@ export default class LocusInfo extends EventsScope {
           }
         );
       }
+
+      if (hasBreakoutChanged) {
+        const {breakout} = current.breakout;
+
+        this.emitScoped(
+          {
+            file: 'locus-info',
+            function: 'updateControls',
+          },
+          LOCUSINFO.EVENTS.MEETING_CONTROLS_BREAKOUT_UPDATE,
+          {
+            breakout,
+          }
+        );
+      }
+
 
       if (hasEntryExitToneChanged) {
         const {entryExitTone} = current;

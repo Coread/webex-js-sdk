@@ -411,6 +411,29 @@ export default class MeetingRequest extends StatelessWebexPlugin {
   }
 
   /**
+   * Move to a breakout session
+   * @param {Object} options
+   * @param {String} options.breakoutUrl
+   * @param {String} options.sessionId
+   * @param {String} options.groupId
+   * @returns {Promise}
+   */
+  moveToSession({
+    breakoutUrl,
+    sessionId,
+    groupId,
+  }) {
+    return this.request({
+      method: HTTP_VERBS.POST,
+      uri: `${breakoutUrl}/move`,
+      body: {
+        groupId,
+        sessionId
+      }
+    });
+  }
+
+  /**
    * Make a network request to acknowledge a meeting
    * @param {Object} options
    * @param {String} options.locusUrl
