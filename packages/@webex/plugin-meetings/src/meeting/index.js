@@ -1595,7 +1595,7 @@ export default class Meeting extends StatelessWebexPlugin {
         }
       });
 
-    this.locusInfo.on(LOCUSINFO.EVENTS.CONTROLS_BREAKOUT_UPDATED,
+    this.locusInfo.on(LOCUSINFO.EVENTS.CONTROLS_MEETING_BREAKOUT_UPDATED,
       ({breakout}) => {
         Trigger.trigger(
           this,
