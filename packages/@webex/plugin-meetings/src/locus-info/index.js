@@ -483,21 +483,30 @@ export default class LocusInfo extends EventsScope {
           }
         );
       }
+
       // If you are  guest and you are removed from the meeting
       // You wont get any further events
       else if (this.parsedLocus.self && this.parsedLocus.self.removed) {
-        // Check if we need to send an event
-        this.emitScoped(
-          {
-            file: 'locus-info',
-            function: 'isMeetingActive',
-          },
-          EVENTS.DESTROY_MEETING,
-          {
-            reason: MEETING_REMOVED_REASON.SELF_REMOVED,
-            shouldLeave: false,
-          }
-        );
+        console.error('REMOVED', JSON.stringify(this.parsedLocus.self));
+
+        if (this.parsedLocus.self.joinedWith.reason === 'MOVED') {
+          // Breakout session move
+          console.error('MOVED TO BREAKOUT', this.parsedLocus);
+        }
+        else {
+          // Check if we need to send an event
+          this.emitScoped(
+            {
+              file: 'locus-info',
+              function: 'isMeetingActive',
+            },
+            EVENTS.DESTROY_MEETING,
+            {
+              reason: MEETING_REMOVED_REASON.SELF_REMOVED,
+              shouldLeave: false,
+            }
+          );
+        }
       }
     }
     else {

@@ -29,6 +29,8 @@ SelfUtils.parse = (self, deviceId) => {
     const joinedWith = self.devices.find((device) => deviceId === device.url);
     const pstnDevices = self.devices.filter((device) => PSTN_DEVICE_TYPE === device.deviceType);
 
+    // console.error('PARSE IN SELF UTILS', self.url, self);
+
     return {
       remoteMuted: SelfUtils.getRemoteMuted(self),
       unmuteAllowed: SelfUtils.getUnmuteAllowed(self),
@@ -87,6 +89,19 @@ SelfUtils.isSharingBlocked = (self) => !!self?.isSharingBlocked;
 SelfUtils.getSelves = (oldSelf, newSelf, deviceId) => {
   const previous = oldSelf && SelfUtils.parse(oldSelf, deviceId);
   const current = newSelf && SelfUtils.parse(newSelf, deviceId);
+
+  console.error('current self', current);
+
+  if (newSelf.reason === 'MOVED' && newSelf.state === 'LEFT') {
+    console.error('BREAKOUT MOVE - IGNORING');
+
+    return {
+      previous,
+      current: previous,
+      updates: {}
+    };
+  }
+
   const updates = {};
 
   updates.isUserUnadmitted = SelfUtils.isUserUnadmitted(current);
@@ -134,6 +149,8 @@ SelfUtils.layoutChanged = (previous, current) => current?.layout && previous?.la
 SelfUtils.breakoutsChanged = (previous, current) => JSON.stringify(previous?.breakouts) !== JSON.stringify(current?.breakouts);
 
 SelfUtils.isMediaInactive = (previous, current) => {
+  let status = false;
+
   if (
     previous &&
     previous.joinedWith &&
@@ -149,13 +166,17 @@ SelfUtils.isMediaInactive = (previous, current) => {
       current.joinedWith.mediaSessions
     );
 
+    console.log('current media status', currentMediaStatus);
+    console.log('previous media status', previousMediaStatus);
+
+
     if (
       previousMediaStatus.audio && currentMediaStatus.audio &&
       previousMediaStatus.audio.state !== MEDIA_STATE.inactive &&
       currentMediaStatus.audio.state === MEDIA_STATE.inactive &&
       currentMediaStatus.audio.direction !== MEDIA_STATE.inactive
     ) {
-      return true;
+      status = true;
     }
 
     if (
@@ -164,7 +185,7 @@ SelfUtils.isMediaInactive = (previous, current) => {
       currentMediaStatus.video.state === MEDIA_STATE.inactive &&
       currentMediaStatus.video.direction !== MEDIA_STATE.inactive
     ) {
-      return true;
+      status = true;
     }
 
     if (
@@ -173,13 +194,14 @@ SelfUtils.isMediaInactive = (previous, current) => {
       currentMediaStatus.share.state === MEDIA_STATE.inactive &&
       currentMediaStatus.share.direction !== MEDIA_STATE.inactive
     ) {
-      return true;
+      status = true;
     }
-
-    return false;
   }
 
-  return false;
+
+  console.log('MEDIA INACTIVE STATUS', status);
+
+  return status;
 };
 
 SelfUtils.getLastModified = (self) => {

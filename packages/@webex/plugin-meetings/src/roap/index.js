@@ -178,6 +178,9 @@ export default class Roap extends StatelessWebexPlugin {
    */
   sendRoapAnswer(options) {
     const meeting = this.webex.meetings.meetingCollection.getByKey('correlationId', options.correlationId);
+
+    console.error('SEND ROAP MEDIA REQUEST', meeting.locusInfo?.self?.url, meeting.selfUrl);
+
     const roapMessage = {
       messageType: ROAP.ROAP_TYPES.ANSWER,
       sdps: options.sdps,
@@ -185,11 +188,6 @@ export default class Roap extends StatelessWebexPlugin {
       seq: options.seq
     };
 
-    this.roapHandler.submit({
-      type: ROAP.SEND_ROAP_MSG,
-      msg: roapMessage,
-      correlationId: options.correlationId
-    });
 
     return this.roapRequest
       .sendRoap({
@@ -202,6 +200,12 @@ export default class Roap extends StatelessWebexPlugin {
         meetingId: meeting.id
       })
       .then(() => {
+        this.roapHandler.submit({
+          type: ROAP.SEND_ROAP_MSG,
+          msg: roapMessage,
+          correlationId: options.correlationId
+        });
+
         meeting.setRoapSeq(options.seq);
 
         this.roapHandler.submit({
@@ -260,6 +264,8 @@ export default class Roap extends StatelessWebexPlugin {
     // Normally this is the roap offer, but when TURN discovery is enabled,
     // then this is the TURN discovery request message
     const sendEmptyMediaId = reconnect && !meeting.config.experimental.enableTurnDiscovery;
+
+    console.error('SEND ROAP MEDIA REQUEST', meeting.locusInfo?.self?.url, meeting.selfUrl);
 
     return this.roapRequest
       .sendRoap({

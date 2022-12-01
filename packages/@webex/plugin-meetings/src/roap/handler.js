@@ -100,17 +100,17 @@ export default class RoapHandler extends StatelessWebexPlugin {
         // Server will send the mercury event comes back
         if (RoapUtil.shouldHandleMedia(meeting)) {
           RoapUtil.updatePeerConnection(meeting, session)
-            .then((answerSdps) => {
-              this.roapAnswer({
-                mediaId: meeting.mediaId,
-                sdps: answerSdps,
-                seq: session.OFFER.seq,
-                correlationId: meeting.correlationId,
-                audioMuted: meeting.isAudioMuted(),
-                videoMuted: meeting.isVideoMuted()
-              });
-            })
+            .then((answerSdps) => this.roapAnswer({
+              mediaId: meeting.mediaId,
+              sdps: answerSdps,
+              seq: session.OFFER.seq,
+              correlationId: meeting.correlationId,
+              audioMuted: meeting.isAudioMuted(),
+              videoMuted: meeting.isVideoMuted()
+            }))
             .catch((error) => {
+              console.error('resetting last roap message');
+              this.lastRoapMessage = undefined;
               const metricName = BEHAVIORAL_METRICS.ROAP_ANSWER_FAILURE;
               const data = {
                 correlation_id: meeting.correlationId,
@@ -241,6 +241,9 @@ export default class RoapHandler extends StatelessWebexPlugin {
       seq = action.msg.seq;
     }
     const session = RoapCollection.getSessionSequence(correlationId, seq);
+
+    console.error('SUBMIT session is', session);
+
     const meeting = this.webex.meetings.meetingCollection.getByKey('correlationId', correlationId);
 
     if (checkForAndHandleErrors(action, meeting, correlationId)) {

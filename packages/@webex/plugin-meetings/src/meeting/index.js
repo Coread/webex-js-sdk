@@ -1091,6 +1091,10 @@ export default class Meeting extends StatelessWebexPlugin {
   setUpLocusInfoMediaInactiveListener() {
     // User gets kicked off the meeting due to inactivity or user did a refresh
     this.locusInfo.on(EVENTS.DISCONNECT_DUE_TO_INACTIVITY, (res) => {
+      console.error('MEDIA INACTIVE LISTENER');
+
+      // return;
+
       // https:// jira-eng-gpk2.cisco.com/jira/browse/SPARK-240520
       // TODO: send custom parameter explaining why the inactivity happened
       // refresh , no media or network got dsconnected or something else
@@ -2070,6 +2074,10 @@ export default class Meeting extends StatelessWebexPlugin {
     });
 
     this.locusInfo.on(LOCUSINFO.EVENTS.MEDIA_INACTIVITY, () => {
+      console.error('MEDIA_INACTIVITY!!');
+
+      // return;
+
       Metrics.sendBehavioralMetric(
         BEHAVIORAL_METRICS.MEETING_MEDIA_INACTIVE,
         {
@@ -2407,34 +2415,34 @@ export default class Meeting extends StatelessWebexPlugin {
     }
   }
 
-  /**
-   * Sets the first locus info on the class instance
-   * @param {Object} locus
-   * @param {String} locus.url
-   * @param {Array} locus.participants
-   * @param {Object} locus.self
-   * @returns {undefined}
-   * @private
-   * @memberof Meeting
-   */
-  parseLocus(locus) {
-    if (locus) {
-      this.locusUrl = locus.url;
-      // TODO: move this to parse participants module
-      this.setLocus(locus);
+  // /**
+  //  * Sets the first locus info on the class instance
+  //  * @param {Object} locus
+  //  * @param {String} locus.url
+  //  * @param {Array} locus.participants
+  //  * @param {Object} locus.self
+  //  * @returns {undefined}
+  //  * @private
+  //  * @memberof Meeting
+  //  */
+  // parseLocus(locus) {
+  //   if (locus) {
+  //     this.locusUrl = locus.url;
+  //     // TODO: move this to parse participants module
+  //     this.setLocus(locus);
 
-      // check if we can extract this info from partner
-      // Parsing of locus object must be finished at this state
-      if (locus.participants && locus.self) {
-        this.partner = MeetingUtil.getLocusPartner(locus.participants, locus.self);
-      }
+  //     // check if we can extract this info from partner
+  //     // Parsing of locus object must be finished at this state
+  //     if (locus.participants && locus.self) {
+  //       this.partner = MeetingUtil.getLocusPartner(locus.participants, locus.self);
+  //     }
 
-      // For webex meeting the sipUrl gets updated in info parser
-      if (!this.sipUri && this.partner && this.type === _CALL_) {
-        this.setSipUri(this.partner.person.sipUrl || this.partner.person.id);
-      }
-    }
-  }
+  //     // For webex meeting the sipUrl gets updated in info parser
+  //     if (!this.sipUri && this.partner && this.type === _CALL_) {
+  //       this.setSipUri(this.partner.person.sipUrl || this.partner.person.id);
+  //     }
+  //   }
+  // }
 
   /**
    * Sets the sip uri on the class instance
