@@ -37,6 +37,7 @@ export default class Member {
   supportsBreakouts: boolean;
   supportsInterpretation: boolean;
   supportLiveAnnotation: boolean;
+  canReclaimHostRole: boolean;
   type: any;
   namespace = MEETINGS;
 
@@ -261,6 +262,14 @@ export default class Member {
       video: null,
     };
 
+    /**
+     * @instance
+     * @type {Boolean}
+     * @public
+     * @memberof Member
+     */
+    this.canReclaimHostRole = null;
+
     // TODO: more participant types
     // such as native client, web client, is a device, what type of phone, etc
     this.processParticipant(participant);
@@ -286,6 +295,7 @@ export default class Member {
       this.supportsBreakouts = MemberUtil.isBreakoutsSupported(participant);
       this.supportsInterpretation = MemberUtil.isInterpretationSupported(participant);
       this.supportLiveAnnotation = MemberUtil.isLiveAnnotationSupported(participant);
+      this.canReclaimHostRole = MemberUtil.canReclaimHostRole(participant);
       this.isGuest = MemberUtil.isGuest(participant);
       this.isUser = MemberUtil.isUser(participant);
       this.isDevice = MemberUtil.isDevice(participant);

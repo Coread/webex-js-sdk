@@ -208,7 +208,13 @@ const MembersUtil = {
   getRoleAssignmentMemberRequestParams: (options: RoleAssignmentOptions): RoleAssignmentRequest => {
     const body = {role: {roles: []}};
     options.roles.forEach((role) => {
-      body.role.roles.push({type: role.type, hasRole: role.hasRole});
+      const roleToAdd = {type: role.type, hasRole: role.hasRole};
+
+      if (role.hostKey) {
+        roleToAdd.hostKey = role.hostKey;
+      }
+
+      body.role.roles.push(roleToAdd);
     });
 
     const uri = `${options.locusUrl}/${PARTICIPANT}/${options.memberId}/${CONTROLS}`;

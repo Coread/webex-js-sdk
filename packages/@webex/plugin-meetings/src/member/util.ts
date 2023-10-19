@@ -223,6 +223,20 @@ MemberUtil.isLiveAnnotationSupported = (participant) => {
 };
 
 /**
+ * @param {Object} participant the locus participant
+ * @returns {Boolean}
+ */
+MemberUtil.canReclaimHostRole = (participant) => {
+  if (!participant) {
+    throw new ParameterError(
+      'canReclaimHostRole could not be processed, participant is undefined.'
+    );
+  }
+
+  return participant.canReclaimHostRole;
+};
+
+/**
  * utility method for audio/video muted status
  * @param {any} participant
  * @param {String} statusAccessor
