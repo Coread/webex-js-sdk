@@ -208,7 +208,7 @@ const MembersUtil = {
   getRoleAssignmentMemberRequestParams: (options: RoleAssignmentOptions): RoleAssignmentRequest => {
     const body = {role: {roles: []}};
     options.roles.forEach((role) => {
-      const roleToAdd = {type: role.type, hasRole: role.hasRole};
+      const roleToAdd: ServerRoleShape = {type: role.type, hasRole: role.hasRole};
 
       if (role.hostKey) {
         roleToAdd.hostKey = role.hostKey;
