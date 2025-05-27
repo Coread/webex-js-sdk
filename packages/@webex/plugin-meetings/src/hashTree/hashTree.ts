@@ -21,7 +21,13 @@ class HashTree {
   leafHashes: Array<string>;
   numLeaves: number;
 
-  constructor(leafData, numLeaves) {
+  constructor(leafData, numLeaves: number) {
+    // check num leaves is either 0 or a power of 2
+    // eslint-disable-next-line no-bitwise
+    if (numLeaves < 0 || (numLeaves & (numLeaves - 1)) !== 0) {
+      throw new Error('Number of leaves must be a power of 2');
+    }
+
     this.numLeaves = numLeaves;
     this.leafHashes = new Array(numLeaves).fill(NULL_HASH);
 
@@ -114,10 +120,6 @@ class HashTree {
   computeTreeHash(): string {
     if (this.numLeaves === 0) {
       return NULL_HASH;
-    }
-
-    if (this.numLeaves === 1) {
-      return this.leafHashes[0];
     }
 
     let currentLevelHashes = [...this.leafHashes];

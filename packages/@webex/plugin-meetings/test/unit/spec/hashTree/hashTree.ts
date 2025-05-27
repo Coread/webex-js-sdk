@@ -14,6 +14,12 @@ describe('HashTree', () => {
     expect(hashTree.leafHashes).to.deep.equal(new Array(numLeaves).fill('99aa06d3014798d86001c324468d497f'));
   })
 
+  it('number of leaves must be a power of 2', () => {
+    const leafData = [];
+    const numLeaves = 3; // Not a power of 2
+    expect(() => new HashTree(leafData, numLeaves)).to.throw('Number of leaves must be a power of 2');
+  });
+
   it('should add items and compute hashes correctly', () => {
     const leafData = [
       { type: 'participant', id: 1, version: 1 },
