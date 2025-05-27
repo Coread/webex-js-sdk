@@ -10,3 +10,7 @@ export const DATA_SETS = {
   ATD_UNMUTED: 'atd-unmuted', // The attendees that are unmuted
   SELF: 'self',
 };
+
+export const ITEM_TYPES = {
+  PARTICIPANT: 'participant',
+};

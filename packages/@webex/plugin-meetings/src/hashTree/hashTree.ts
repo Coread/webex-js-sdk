@@ -1,11 +1,6 @@
 /* eslint-disable require-jsdoc */
 import {XXHash128} from 'xxhash-addon';
-
-const NULL_HASH = '99aa06d3014798d86001c324468d497f';
-
-const ITEM_TYPES = {
-  PARTICIPANT: 'participant',
-};
+import {EMPTY_HASH, ITEM_TYPES} from './constants';
 
 type LeafDataItem = {
   type: string;
@@ -29,7 +24,7 @@ class HashTree {
     }
 
     this.numLeaves = numLeaves;
-    this.leafHashes = new Array(numLeaves).fill(NULL_HASH);
+    this.leafHashes = new Array(numLeaves).fill(EMPTY_HASH);
 
     // TODO: Consider whether we need to support dynamic types
     this.buckets = new Array(numLeaves).fill(null).map(() => {
@@ -119,7 +114,7 @@ class HashTree {
 
   computeTreeHash(): string {
     if (this.numLeaves === 0) {
-      return NULL_HASH;
+      return EMPTY_HASH;
     }
 
     let currentLevelHashes = [...this.leafHashes];
