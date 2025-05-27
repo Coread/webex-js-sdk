@@ -34,6 +34,20 @@ describe('HashTree', () => {
     expect(hashTree.leafHashes[2]).to.not.equal('99aa06d3014798d86001c324468d497f');
   });
 
+  it('should have correct hash', () => {
+    const leafData = [{type: 'participant', id: 1, version: 10}];
+    const numLeaves = 2;
+    const hashTree = new HashTree(leafData, numLeaves);
+
+    expect(hashTree.buckets[1]['participant'][1]).to.deep.equal({
+      type: 'participant',
+      id: 1,
+      version: 10,
+    });
+
+    expect(hashTree.computeTreeHash()).to.equal('14c02026daa1dddba53e718919da4fa7');
+  });
+
   it('returns the correct tree hash for an empty tree', () => {
     const hashTree = new HashTree([], 0);
 
@@ -45,6 +59,13 @@ describe('HashTree', () => {
     const hashTree = new HashTree([], 2);
 
     const expectedHash = '590350119ab0222f04245739b8563505';
+    expect(hashTree.computeTreeHash()).to.equal(expectedHash);
+  });
+
+  it('returns the correct tree hash for an empty tree with 4 leaves', () => {
+    const hashTree = new HashTree([], 4);
+
+    const expectedHash = '1ed4395223d8a752ec2c3c83a43bc68d';
     expect(hashTree.computeTreeHash()).to.equal(expectedHash);
   });
 });

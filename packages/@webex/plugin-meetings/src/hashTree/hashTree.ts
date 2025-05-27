@@ -104,8 +104,14 @@ class HashTree {
 
       // add all the items id and version to the hasher
       items.forEach((item: LeafDataItem) => {
-        hasher.update(Buffer.from(item.id.toString()));
-        hasher.update(Buffer.from(item.version.toString()));
+        const idBuffer = Buffer.alloc(8);
+        idBuffer.writeBigInt64BE(BigInt(item.id), 0);
+
+        const versionBuffer = Buffer.alloc(8);
+        versionBuffer.writeBigInt64BE(BigInt(item.version), 0);
+
+        hasher.update(idBuffer);
+        hasher.update(versionBuffer);
       });
     });
 
