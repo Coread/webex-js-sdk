@@ -8,9 +8,7 @@ describe('HashTree', () => {
     const numLeaves = 4;
     const hashTree = new HashTree(leafData, numLeaves);
 
-    expect(hashTree.buckets).to.deep.equal(new Array(numLeaves).fill(null).map(() => ({
-      'participant': {},
-    })));
+    expect(hashTree.buckets).to.deep.equal(new Array(numLeaves).fill(null).map(() => ({})));
     expect(hashTree.leafHashes).to.deep.equal(new Array(numLeaves).fill('99aa06d3014798d86001c324468d497f'));
   })
 

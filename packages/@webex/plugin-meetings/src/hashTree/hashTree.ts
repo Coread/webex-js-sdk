@@ -1,6 +1,6 @@
 /* eslint-disable require-jsdoc */
 import {XXHash128} from 'xxhash-addon';
-import {EMPTY_HASH, ITEM_TYPES} from './constants';
+import {EMPTY_HASH} from './constants';
 
 type LeafDataItem = {
   type: string;
@@ -9,9 +9,7 @@ type LeafDataItem = {
 };
 
 class HashTree {
-  buckets: Array<
-    Record<(typeof ITEM_TYPES)[keyof typeof ITEM_TYPES], Record<number, LeafDataItem>>
-  >;
+  buckets: Array<Record<string, Record<number, LeafDataItem>>>;
 
   leafHashes: Array<string>;
   numLeaves: number;
@@ -26,22 +24,8 @@ class HashTree {
     this.numLeaves = numLeaves;
     this.leafHashes = new Array(numLeaves).fill(EMPTY_HASH);
 
-    // TODO: Consider whether we need to support dynamic types
     this.buckets = new Array(numLeaves).fill(null).map(() => {
-      const bucketInstance: Partial<
-        Record<(typeof ITEM_TYPES)[keyof typeof ITEM_TYPES], Record<number, LeafDataItem>>
-      > = {};
-      // Initialize an empty record for each item type defined in ITEM_TYPES
-      (Object.values(ITEM_TYPES) as Array<(typeof ITEM_TYPES)[keyof typeof ITEM_TYPES]>).forEach(
-        (itemTypeValue) => {
-          bucketInstance[itemTypeValue] = {};
-        }
-      );
-
-      return bucketInstance as Record<
-        (typeof ITEM_TYPES)[keyof typeof ITEM_TYPES],
-        Record<number, LeafDataItem>
-      >;
+      return {};
     });
 
     this.addItems(leafData);
@@ -52,6 +36,10 @@ class HashTree {
 
     leafData.forEach((item) => {
       const index = item.id % this.numLeaves;
+
+      if (!this.buckets[index][item.type]) {
+        this.buckets[index][item.type] = {};
+      }
 
       const existingItem = this.buckets[index][item.type][item.id];
 
