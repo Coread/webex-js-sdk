@@ -193,7 +193,7 @@ class HashTree {
     return results;
   }
 
-  computeBucketHash(index) {
+  computeBucketHash(index: number) {
     const bucket = this.buckets[index];
 
     // create a hasher
@@ -347,6 +347,7 @@ class HashTree {
     }
 
     // Re-initialize
+    // eslint-disable-next-line no-extra-semi
     (this as any).numLeaves = newNumLeaves; // Workaround for readonly, or remove readonly for resize
     this.leafHashes = new Array(newNumLeaves).fill(EMPTY_HASH);
     this.buckets = new Array(newNumLeaves).fill(null).map(() => ({}));
@@ -379,36 +380,23 @@ class HashTree {
       return [];
     }
 
-    const ownHashes = this.getHashes();
-    // The number of internal nodes can be derived.
-    // Total nodes = 2 * numLeaves - 1 (for numLeaves > 0)
-    // If numLeaves = 1, totalNodes = 1 (only leaf), internal = 0
-    // If numLeaves = 0, totalNodes = 1 ( conceptually, for the EMPTY_HASH root)
-    // Number of leaf hashes = numLeaves
-    // Number of internal hashes = totalHashes - numLeaves
-
-    const numInternalHashesOwn = ownHashes.length - this.numLeaves;
-
     // We are interested in comparing the leaf hashes part.
     // The externalHashes array should also have its leaf hashes at the end.
-    if (externalHashes.length < this.numLeaves) {
-      // Not enough external hashes to compare all leaves, consider all leaves as potentially different
-      // or throw an error. For now, let's assume this means all are different.
-      // Or, more robustly, only compare up to the shorter length if that makes sense.
-      // The Java version implies externalHashes matches the tree's full hash structure.
-      // If externalHashes.length != ownHashes.length, it's a structural mismatch.
-      // For simplicity, if lengths differ significantly, it implies major differences.
-      // Let's assume externalHashes has at least numInternalHashes + numLeaves.
-      // Consider what to do if externalHashes.length !== ownHashes.length
-      // For now, let's assume externalHashes has a compatible structure.
-    }
+    // The Java version implies externalHashes matches the tree's full hash structure.
+    // If externalHashes.length != ownHashes.length (where ownHashes = this.getHashes()),
+    // it's a structural mismatch.
+    // This implementation is more lenient and tries to compare leaf portions if possible.
 
     const differingLeafIndexes: number[] = [];
+    // Calculate where the leaf hashes would start in the externalHashes array,
+    // assuming it has the same number of leaves as this tree.
     const externalLeafHashesStart = externalHashes.length - this.numLeaves;
 
     if (externalLeafHashesStart < 0) {
-      // externalHashes is too short to contain leaf hashes for this tree.
-      // All our leaves are "different" or this is an error condition.
+      // externalHashes is too short to possibly contain a complete set of leaf hashes
+      // corresponding to this tree's numLeaves.
+      // In this case, consider all of this tree's leaves as "different"
+      // because there's no corresponding external hash to compare for each.
       for (let i = 0; i < this.numLeaves; i += 1) {
         differingLeafIndexes.push(i);
       }
@@ -416,8 +404,11 @@ class HashTree {
       return differingLeafIndexes;
     }
 
+    // Compare each leaf hash
     for (let i = 0; i < this.numLeaves; i += 1) {
       const ownLeafHash = this.leafHashes[i];
+      // externalLeafHash might be undefined if externalHashes is shorter than expected
+      // but externalLeafHashesStart was non-negative. This implies a structural mismatch.
       const externalLeafHash = externalHashes[externalLeafHashesStart + i];
       if (ownLeafHash !== externalLeafHash) {
         differingLeafIndexes.push(i);
