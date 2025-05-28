@@ -13,4 +13,6 @@ export const DATA_SETS = {
 
 export const ITEM_TYPES = {
   PARTICIPANT: 'participant',
+  TYPE_A: 'typeA',
+  TYPE_B: 'typeB',
 };

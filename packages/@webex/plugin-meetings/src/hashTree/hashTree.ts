@@ -105,10 +105,10 @@ class HashTree {
       // add all the items id and version to the hasher
       items.forEach((item: LeafDataItem) => {
         const idBuffer = Buffer.alloc(8);
-        idBuffer.writeBigInt64BE(BigInt(item.id), 0);
+        idBuffer.writeBigInt64LE(BigInt(item.id));
 
         const versionBuffer = Buffer.alloc(8);
-        versionBuffer.writeBigInt64BE(BigInt(item.version), 0);
+        versionBuffer.writeBigInt64LE(BigInt(item.version));
 
         hasher.update(idBuffer);
         hasher.update(versionBuffer);
@@ -118,12 +118,13 @@ class HashTree {
     this.leafHashes[index] = hasher.digest().toString('hex');
   }
 
-  computeTreeHash(): string {
+  computeTreeHashes(): string[] {
     if (this.numLeaves === 0) {
-      return EMPTY_HASH;
+      return [EMPTY_HASH];
     }
 
     let currentLevelHashes = [...this.leafHashes];
+    const allHashes = [];
 
     while (currentLevelHashes.length > 1) {
       const nextLevelHashes: string[] = [];
@@ -133,18 +134,26 @@ class HashTree {
 
         const hasher = new XXHash128(Buffer.from([0, 0, 0, 0]));
 
-        // TODO: double check this is correct, not sure about how we are unpacking the hashes
-        // in order to create the next level hash
-        // Convert hex strings to Buffers for hashing
-        hasher.update(Buffer.from(leftHash, 'hex'));
-        hasher.update(Buffer.from(rightHash, 'hex'));
+        const input = Buffer.concat([
+          Buffer.from(leftHash, 'hex').subarray(0, 8).reverse(),
+          Buffer.from(leftHash, 'hex').subarray(8, 16).reverse(),
+          Buffer.from(rightHash, 'hex').subarray(0, 8).reverse(),
+          Buffer.from(rightHash, 'hex').subarray(8, 16).reverse(),
+        ]);
+
+        hasher.update(input);
 
         nextLevelHashes.push(hasher.digest().toString('hex'));
       }
       currentLevelHashes = nextLevelHashes;
+      allHashes.unshift(...currentLevelHashes);
     }
 
-    return currentLevelHashes[0];
+    return [...allHashes, ...this.leafHashes];
+  }
+
+  getRouteHash() {
+    return this.computeTreeHashes()[0];
   }
 }
 
