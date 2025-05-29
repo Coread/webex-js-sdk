@@ -23,11 +23,9 @@ class HashTree {
    * @throws {Error} If numLeaves is not 0 or a power of 2.
    */
   constructor(leafData: LeafDataItem[], numLeaves: number) {
-    // check num leaves is either 0 or a power of 2
     // eslint-disable-next-line no-bitwise
-    if (numLeaves < 0 || (numLeaves !== 0 && (numLeaves & (numLeaves - 1)) !== 0)) {
-      // Allow 0 leaves, but not negative or non-power-of-2 (for non-zero)
-      throw new Error('Number of leaves must be 0 or a power of 2');
+    if ((numLeaves & (numLeaves - 1)) !== 0) {
+      throw new Error(`Number of leaves must be a power of 2, saw ${numLeaves}`);
     }
 
     this.numLeaves = numLeaves;
