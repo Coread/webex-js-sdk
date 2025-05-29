@@ -11,12 +11,12 @@ type LeafDataItem = {
 };
 
 describe('HashTree', () => {
-  it('should initialize with empty buckets and hashes', () => {
+  it('should initialize with empty leaves and hashes', () => {
     const leafData: LeafDataItem[] = [];
     const numLeaves = 4;
     const hashTree = new HashTree(leafData, numLeaves);
 
-    expect(hashTree.buckets).to.deep.equal(new Array(numLeaves).fill(null).map(() => ({})));
+    expect(hashTree.leaves).to.deep.equal(new Array(numLeaves).fill(null).map(() => ({})));
     expect(hashTree.leafHashes).to.deep.equal(new Array(numLeaves).fill(EMPTY_HASH));
     expect(hashTree.getLeafCount()).to.equal(numLeaves);
     expect(hashTree.getTotalItemCount()).to.equal(0);
@@ -96,8 +96,8 @@ describe('HashTree', () => {
     const results = hashTree.putItems(itemsToPut);
 
     expect(results).to.deep.equal([true, true]);
-    expect(hashTree.buckets[1]['participant'][1]).to.deep.equal({ type: 'participant', id: 1, version: 1 });
-    expect(hashTree.buckets[2]['participant'][2]).to.deep.equal({ type: 'participant', id: 2, version: 1 });
+    expect(hashTree.leaves[1]['participant'][1]).to.deep.equal({ type: 'participant', id: 1, version: 1 });
+    expect(hashTree.leaves[2]['participant'][2]).to.deep.equal({ type: 'participant', id: 2, version: 1 });
     expect(hashTree.leafHashes[0]).to.equal(EMPTY_HASH);
     expect(hashTree.leafHashes[1]).to.not.equal(EMPTY_HASH);
     expect(hashTree.leafHashes[2]).to.not.equal(EMPTY_HASH);
@@ -111,7 +111,7 @@ describe('HashTree', () => {
     
     const result = hashTree.putItem(item);
     expect(result).to.be.true;
-    expect(hashTree.buckets[1]['data'][3]).to.deep.equal(item);
+    expect(hashTree.leaves[1]['data'][3]).to.deep.equal(item);
     expect(hashTree.leafHashes[1]).to.not.equal(EMPTY_HASH);
     expect(hashTree.getTotalItemCount()).to.equal(1);
 
@@ -122,7 +122,7 @@ describe('HashTree', () => {
     const itemNewerVersion = {type: 'data', id: 3, version: 2};
     const resultNewer = hashTree.putItem(itemNewerVersion);
     expect(resultNewer).to.be.true;
-    expect(hashTree.buckets[1]['data'][3].version).to.equal(2);
+    expect(hashTree.leaves[1]['data'][3].version).to.equal(2);
   });
   
   it('putItem should return false for tree with 0 leaves', () => {
@@ -143,7 +143,7 @@ describe('HashTree', () => {
     const numLeaves = 2;
     const hashTree = new HashTree(leafData, numLeaves);
 
-    expect(hashTree.buckets[1]['participant'][1]).to.deep.equal({
+    expect(hashTree.leaves[1]['participant'][1]).to.deep.equal({
       type: 'participant',
       id: 1,
       version: 10,
@@ -161,7 +161,7 @@ describe('HashTree', () => {
     const result = hashTree.removeItem({type: 'p', id: 1, version: 1});
     expect(result).to.be.true;
     expect(hashTree.getTotalItemCount()).to.equal(0);
-    expect(hashTree.buckets[1]['p']).to.be.undefined;
+    expect(hashTree.leaves[1]['p']).to.be.undefined;
     expect(hashTree.leafHashes[1]).to.equal(EMPTY_HASH);
     expect(hashTree.getRootHash()).to.not.equal(oldRootHash);
     // After removing the only item, it should be like an empty tree with 2 leaves
@@ -214,8 +214,8 @@ describe('HashTree', () => {
     const results = hashTree.removeItems(itemsToRemove);
     expect(results).to.deep.equal([true, false, false]);
     expect(hashTree.getTotalItemCount()).to.equal(1); // item 'b' should remain
-    expect(hashTree.buckets[1]['a']).to.be.undefined;
-    expect(hashTree.buckets[0]['b'][2]).to.deep.equal({type: 'b', id: 2, version: 2});
+    expect(hashTree.leaves[1]['a']).to.be.undefined;
+    expect(hashTree.leaves[0]['b'][2]).to.deep.equal({type: 'b', id: 2, version: 2});
   });
   
   it('removeItems should return array of false for tree with 0 leaves if items are provided', () => {
@@ -322,7 +322,7 @@ describe('HashTree', () => {
       expect(tree.getLeafCount()).to.equal(0);
       expect(tree.getTotalItemCount()).to.equal(0);
       expect(tree.getRootHash()).to.equal(EMPTY_HASH);
-      expect(tree.buckets.length).to.equal(0);
+      expect(tree.leaves.length).to.equal(0);
       expect(tree.leafHashes.length).to.equal(0);
     });
     

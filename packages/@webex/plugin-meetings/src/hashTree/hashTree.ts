@@ -1,5 +1,3 @@
-/* eslint-disable require-jsdoc */
-/* eslint-disable valid-jsdoc */
 import {XXHash128} from 'xxhash-addon';
 import {EMPTY_HASH} from './constants';
 
@@ -9,24 +7,33 @@ type LeafDataItem = {
   version: number;
 };
 
+/**
+ * HashTree is a data structure that organizes items into leaves based on their IDs,
+ */
 class HashTree {
-  buckets: Array<Record<string, Record<number, LeafDataItem>>>;
+  leaves: Array<Record<string, Record<number, LeafDataItem>>>;
 
   leafHashes: Array<string>;
-  readonly numLeaves: number; // Made numLeaves readonly as it's set in constructor
+  readonly numLeaves: number;
 
+  /**
+   * Constructs a new HashTree.
+   * @param {LeafDataItem[]} leafData Initial data to populate the tree.
+   * @param {number} numLeaves The number of leaf nodes in the tree. Must be 0 or a power of 2.
+   * @throws {Error} If numLeaves is not 0 or a power of 2.
+   */
   constructor(leafData: LeafDataItem[], numLeaves: number) {
     // check num leaves is either 0 or a power of 2
     // eslint-disable-next-line no-bitwise
     if (numLeaves < 0 || (numLeaves !== 0 && (numLeaves & (numLeaves - 1)) !== 0)) {
-      // Allow 0 leaves
+      // Allow 0 leaves, but not negative or non-power-of-2 (for non-zero)
       throw new Error('Number of leaves must be 0 or a power of 2');
     }
 
     this.numLeaves = numLeaves;
     this.leafHashes = new Array(numLeaves).fill(EMPTY_HASH);
 
-    this.buckets = new Array(numLeaves).fill(null).map(() => {
+    this.leaves = new Array(numLeaves).fill(null).map(() => {
       return {};
     });
 
@@ -37,8 +44,8 @@ class HashTree {
 
   /**
    * Adds or updates a single item in the hash tree.
-   * @param item The item to add or update.
-   * @returns True if the item was added or updated, false otherwise (e.g., older version).
+   * @param {LeafDataItem} item The item to add or update.
+   * @returns {boolean} True if the item was added or updated, false otherwise (e.g., older version or tree has 0 leaves).
    */
   putItem(item: LeafDataItem): boolean {
     if (this.numLeaves === 0) {
@@ -47,15 +54,15 @@ class HashTree {
 
     const index = item.id % this.numLeaves;
 
-    if (!this.buckets[index][item.type]) {
-      this.buckets[index][item.type] = {};
+    if (!this.leaves[index][item.type]) {
+      this.leaves[index][item.type] = {};
     }
 
-    const existingItem = this.buckets[index][item.type][item.id];
+    const existingItem = this.leaves[index][item.type][item.id];
 
     if (!existingItem || existingItem.version < item.version) {
-      this.buckets[index][item.type][item.id] = item;
-      this.computeBucketHash(index);
+      this.leaves[index][item.type][item.id] = item;
+      this.computeLeafHash(index);
 
       return true;
     }
@@ -65,38 +72,37 @@ class HashTree {
 
   /**
    * Adds or updates multiple items in the hash tree.
-   * @param items The array of items to add or update.
-   * @returns An array of booleans indicating success for each item.
+   * @param {LeafDataItem[]} items The array of items to add or update.
+   * @returns {boolean[]} An array of booleans indicating success for each item.
    */
   putItems(items: LeafDataItem[]): boolean[] {
     if (this.numLeaves === 0 && items.length > 0) {
-      // Or throw error, or return array of false based on desired behavior for 0 leaves
-
+      // Cannot add items to a tree with 0 leaves.
       return items.map(() => false);
     }
     const results: boolean[] = [];
-    const changedBucketIndexes = new Set<number>();
+    const changedLeafIndexes = new Set<number>();
 
     items.forEach((item) => {
       const index = item.id % this.numLeaves;
 
-      if (!this.buckets[index][item.type]) {
-        this.buckets[index][item.type] = {};
+      if (!this.leaves[index][item.type]) {
+        this.leaves[index][item.type] = {};
       }
 
-      const existingItem = this.buckets[index][item.type][item.id];
+      const existingItem = this.leaves[index][item.type][item.id];
 
       if (!existingItem || existingItem.version < item.version) {
-        this.buckets[index][item.type][item.id] = item;
-        changedBucketIndexes.add(index);
+        this.leaves[index][item.type][item.id] = item;
+        changedLeafIndexes.add(index);
         results.push(true);
       } else {
         results.push(false);
       }
     });
 
-    changedBucketIndexes.forEach((index) => {
-      this.computeBucketHash(index);
+    changedLeafIndexes.forEach((index) => {
+      this.computeLeafHash(index);
     });
 
     return results;
@@ -106,8 +112,8 @@ class HashTree {
    * Removes a single item from the hash tree.
    * The removal is based on matching type, id, and the provided item's version
    * being greater than or equal to the existing item's version.
-   * @param item The item to remove.
-   * @returns True if the item was removed, false otherwise.
+   * @param {LeafDataItem} item The item to remove.
+   * @returns {boolean} True if the item was removed, false otherwise.
    */
   removeItem(item: LeafDataItem): boolean {
     if (this.numLeaves === 0) {
@@ -117,27 +123,23 @@ class HashTree {
     const index = item.id % this.numLeaves;
 
     if (
-      this.buckets[index] &&
-      this.buckets[index][item.type] &&
-      this.buckets[index][item.type][item.id]
+      this.leaves[index] &&
+      this.leaves[index][item.type] &&
+      this.leaves[index][item.type][item.id]
     ) {
-      const existingItem = this.buckets[index][item.type][item.id];
-      // In Java, removeSate version check is existingItem.version() < objectId.version()
-      // To align, we can decide if removal requires exact version or if newer version in request can remove older.
-      // Assuming removal if item exists and version in request is same or newer.
-      // For strict "version must be greater" as in original removeItems:
-      // if (existingItem.version < item.version) {
-      // For typical "remove this specific version or if it's older":
+      const existingItem = this.leaves[index][item.type][item.id];
+      // Remove if the item exists and the version of the item to remove
+      // is greater than or equal to the existing item's version.
       if (
         existingItem.id === item.id &&
         existingItem.type === item.type &&
         existingItem.version <= item.version
       ) {
-        delete this.buckets[index][item.type][item.id];
-        if (Object.keys(this.buckets[index][item.type]).length === 0) {
-          delete this.buckets[index][item.type];
+        delete this.leaves[index][item.type][item.id];
+        if (Object.keys(this.leaves[index][item.type]).length === 0) {
+          delete this.leaves[index][item.type];
         }
-        this.computeBucketHash(index);
+        this.computeLeafHash(index);
 
         return true;
       }
@@ -148,35 +150,33 @@ class HashTree {
 
   /**
    * Removes multiple items from the hash tree.
-   * @param items The array of items to remove.
-   * @returns An array of booleans indicating success for each item.
+   * @param {LeafDataItem[]} items The array of items to remove.
+   * @returns {boolean[]} An array of booleans indicating success for each item.
    */
   removeItems(items: LeafDataItem[]): boolean[] {
     if (this.numLeaves === 0 && items.length > 0) {
       return items.map(() => false);
     }
     const results: boolean[] = [];
-    const changedBucketIndexes = new Set<number>();
+    const changedLeafIndexes = new Set<number>();
 
     items.forEach((item) => {
       const index = item.id % this.numLeaves;
 
       if (
-        this.buckets[index] &&
-        this.buckets[index][item.type] &&
-        this.buckets[index][item.type][item.id]
+        this.leaves[index] &&
+        this.leaves[index][item.type] &&
+        this.leaves[index][item.type][item.id]
       ) {
-        const existingItem = this.buckets[index][item.type][item.id];
-        // Original logic: if (existingItem && existingItem.version < item.version)
-        // This means a new "removal" operation with a higher version number removes the old one.
-        // Let's stick to that for removeItems, and use a more direct match for removeItem.
+        const existingItem = this.leaves[index][item.type][item.id];
+        // Remove if the version of the item to remove is strictly greater
+        // than the existing item's version (acting as a tombstone).
         if (existingItem.version < item.version) {
-          // This implies the 'item' acts as a tombstone with a newer version
-          delete this.buckets[index][item.type][item.id];
-          if (Object.keys(this.buckets[index][item.type]).length === 0) {
-            delete this.buckets[index][item.type];
+          delete this.leaves[index][item.type][item.id];
+          if (Object.keys(this.leaves[index][item.type]).length === 0) {
+            delete this.leaves[index][item.type];
           }
-          changedBucketIndexes.add(index);
+          changedLeafIndexes.add(index);
           results.push(true);
         } else {
           results.push(false);
@@ -186,24 +186,30 @@ class HashTree {
       }
     });
 
-    changedBucketIndexes.forEach((index) => {
-      this.computeBucketHash(index);
+    changedLeafIndexes.forEach((index) => {
+      this.computeLeafHash(index);
     });
 
     return results;
   }
 
-  computeBucketHash(index: number) {
-    const bucket = this.buckets[index];
+  /**
+   * Computes the hash for a specific leaf.
+   * The hash is based on the sorted items within the leaf.
+   * @param {number} index The index of the leaf to compute the hash for.
+   * @returns {void}
+   */
+  computeLeafHash(index: number) {
+    const leafContent = this.leaves[index];
 
     // create a hasher
     const hasher = new XXHash128(Buffer.from([0, 0, 0, 0]));
 
     // iterate through the item types lexicographically
-    const itemTypes = Object.keys(bucket).sort();
+    const itemTypes = Object.keys(leafContent).sort();
     itemTypes.forEach((type) => {
       // iterate through the items of this type in ascending order of ID
-      const items = Object.values(bucket[type]).sort(
+      const items = Object.values(leafContent[type]).sort(
         (a: LeafDataItem, b: LeafDataItem) => a.id - b.id
       );
 
@@ -223,6 +229,12 @@ class HashTree {
     this.leafHashes[index] = hasher.digest().toString('hex');
   }
 
+  /**
+   * Computes all internal and leaf node hashes of the tree.
+   * Internal node hashes are computed bottom-up from the leaf hashes.
+   * @returns {string[]} An array of hash strings, with internal node hashes first, followed by leaf hashes.
+   * Returns `[EMPTY_HASH]` if the tree has 0 leaves.
+   */
   computeTreeHashes(): string[] {
     if (this.numLeaves === 0) {
       return [EMPTY_HASH];
@@ -259,7 +271,7 @@ class HashTree {
 
   /**
    * Returns all hashes in the tree (internal nodes then leaf nodes).
-   * @returns An array of hash strings.
+   * @returns {string[]} An array of hash strings.
    */
   getHashes(): string[] {
     return this.computeTreeHashes();
@@ -267,7 +279,7 @@ class HashTree {
 
   /**
    * Computes and returns the hash value of the root node.
-   * @returns The root hash of the entire tree.
+   * @returns {string} The root hash of the entire tree. Returns `EMPTY_HASH` if the tree has 0 leaves.
    */
   getRootHash(): string {
     if (this.numLeaves === 0) {
@@ -278,8 +290,8 @@ class HashTree {
   }
 
   /**
-   * Gets the number of leaf buckets in the tree.
-   * @returns The number of leaves.
+   * Gets the number of leaves in the tree.
+   * @returns {number} The number of leaves.
    */
   getLeafCount(): number {
     return this.numLeaves;
@@ -287,14 +299,13 @@ class HashTree {
 
   /**
    * Calculates the total number of items stored in the tree.
-   * @returns The total number of items.
+   * @returns {number} The total number of items.
    */
   getTotalItemCount(): number {
     let count = 0;
-    for (const bucket of this.buckets) {
-      for (const type of Object.keys(bucket)) {
-        // Changed from for...in
-        count += Object.keys(bucket[type]).length;
+    for (const leaf of this.leaves) {
+      for (const type of Object.keys(leaf)) {
+        count += Object.keys(leaf[type]).length;
       }
     }
 
@@ -302,19 +313,19 @@ class HashTree {
   }
 
   /**
-   * Retrieves all data items from a specific leaf bucket.
-   * @param leafIndex The index of the leaf bucket.
-   * @returns An array of LeafDataItem in the specified bucket, or an empty array if the index is invalid or bucket is empty.
+   * Retrieves all data items from a specific leaf.
+   * @param {number} leafIndex The index of the leaf.
+   * @returns {LeafDataItem[]} An array of LeafDataItem in the specified leaf, sorted by ID,
+   * or an empty array if the index is invalid or leaf is empty.
    */
   getLeafData(leafIndex: number): LeafDataItem[] {
     if (leafIndex < 0 || leafIndex >= this.numLeaves) {
       return [];
     }
-    const bucket = this.buckets[leafIndex];
+    const leafContent = this.leaves[leafIndex];
     const items: LeafDataItem[] = [];
-    for (const type of Object.keys(bucket)) {
-      // Changed from for...in
-      items.push(...Object.values(bucket[type]));
+    for (const type of Object.keys(leafContent)) {
+      items.push(...Object.values(leafContent[type]));
     }
     // Optionally sort them if a specific order is required, e.g., by ID
     items.sort((a, b) => a.id - b.id);
@@ -324,9 +335,9 @@ class HashTree {
 
   /**
    * Resizes the HashTree to have a new number of leaf nodes, redistributing all existing items.
-   * @param newNumLeaves The new number of leaf nodes (must be 0 or a power of 2).
-   * @returns true if the tree was resized, false if the size didn't change.
-   * @throws Error if newNumLeaves is not 0 or a power of 2.
+   * @param {number} newNumLeaves The new number of leaf nodes (must be 0 or a power of 2).
+   * @returns {boolean} true if the tree was resized, false if the size didn't change.
+   * @throws {Error} if newNumLeaves is not 0 or a power of 2.
    */
   resize(newNumLeaves: number): boolean {
     // eslint-disable-next-line no-bitwise
@@ -339,21 +350,20 @@ class HashTree {
     }
 
     const allItems: LeafDataItem[] = [];
-    for (const bucket of this.buckets) {
-      for (const type of Object.keys(bucket)) {
-        // Changed from for...in
-        allItems.push(...Object.values(bucket[type]));
+    for (const leaf of this.leaves) {
+      for (const type of Object.keys(leaf)) {
+        allItems.push(...Object.values(leaf[type]));
       }
     }
 
     // Re-initialize
     // eslint-disable-next-line no-extra-semi
-    (this as any).numLeaves = newNumLeaves; // Workaround for readonly, or remove readonly for resize
+    (this as any).numLeaves = newNumLeaves; // Type assertion to update readonly property
     this.leafHashes = new Array(newNumLeaves).fill(EMPTY_HASH);
-    this.buckets = new Array(newNumLeaves).fill(null).map(() => ({}));
+    this.leaves = new Array(newNumLeaves).fill(null).map(() => ({}));
 
     if (newNumLeaves > 0) {
-      this.putItems(allItems); // Re-add items which will re-bucket and re-hash
+      this.putItems(allItems); // Re-add items which will be re-assigned to leaves and re-hashed
     }
 
     return true;
@@ -363,40 +373,33 @@ class HashTree {
    * Compares the tree's leaf hashes with an external set of hashes and returns the indices of differing leaf nodes.
    * The externalHashes array is expected to contain all node hashes (internal followed by leaves),
    * similar to the output of getHashes().
-   * @param externalHashes An array of hash strings (internal node hashes then leaf hashes).
-   * @returns An array of indices of the leaf nodes that have different hashes.
+   * @param {string[]} externalHashes An array of hash strings (internal node hashes then leaf hashes).
+   * @returns {number[]} An array of indices of the leaf nodes that have different hashes.
    */
   diffHashes(externalHashes: string[]): number[] {
     if (this.numLeaves === 0) {
-      // If the tree is empty, its hash is EMPTY_HASH.
+      // If this tree is empty, its hash is EMPTY_HASH.
       // It differs if externalHashes is not a single EMPTY_HASH.
       if (externalHashes && externalHashes.length === 1 && externalHashes[0] === EMPTY_HASH) {
         return []; // No differences
       }
-      // If externalHashes is empty or different, it implies a difference.
-      // However, diffHashes is about leaf differences. An empty tree has no leaves to differ.
-      // So, an empty array is appropriate as no specific leaf indexes are different.
+      // An empty tree has no leaves to differ, so return an empty array
+      // as no specific leaf indexes are different.
 
       return [];
     }
 
     // We are interested in comparing the leaf hashes part.
     // The externalHashes array should also have its leaf hashes at the end.
-    // The Java version implies externalHashes matches the tree's full hash structure.
-    // If externalHashes.length != ownHashes.length (where ownHashes = this.getHashes()),
-    // it's a structural mismatch.
-    // This implementation is more lenient and tries to compare leaf portions if possible.
-
     const differingLeafIndexes: number[] = [];
     // Calculate where the leaf hashes would start in the externalHashes array,
     // assuming it has the same number of leaves as this tree.
     const externalLeafHashesStart = externalHashes.length - this.numLeaves;
 
     if (externalLeafHashesStart < 0) {
-      // externalHashes is too short to possibly contain a complete set of leaf hashes
+      // externalHashes is too short to contain a complete set of leaf hashes
       // corresponding to this tree's numLeaves.
-      // In this case, consider all of this tree's leaves as "different"
-      // because there's no corresponding external hash to compare for each.
+      // In this case, consider all of this tree's leaves as "different".
       for (let i = 0; i < this.numLeaves; i += 1) {
         differingLeafIndexes.push(i);
       }
@@ -408,7 +411,7 @@ class HashTree {
     for (let i = 0; i < this.numLeaves; i += 1) {
       const ownLeafHash = this.leafHashes[i];
       // externalLeafHash might be undefined if externalHashes is shorter than expected
-      // but externalLeafHashesStart was non-negative. This implies a structural mismatch.
+      // but externalLeafHashesStart was non-negative, implying a structural mismatch.
       const externalLeafHash = externalHashes[externalLeafHashesStart + i];
       if (ownLeafHash !== externalLeafHash) {
         differingLeafIndexes.push(i);
