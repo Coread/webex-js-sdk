@@ -352,8 +352,7 @@ describe('HashTree', () => {
       // Expected diffs: leaf 0 (present in 1, not in 2), leaf 1 (present in 2, not in 1)
       const diff = tree1.diffHashes(tree2.getHashes());
       expect(diff).to.include.members([0, 1]);
-      // Depending on how EMPTY_HASH vs actual hash comparison works,
-      // if one leaf is empty and other is not, they are different.
+      // If one leaf's hash is EMPTY_HASH and the other's is a computed hash, they are different.
     });
     
     it('should return all leaf indices if externalHashes is for a different structure (e.g. too short)', () => {
