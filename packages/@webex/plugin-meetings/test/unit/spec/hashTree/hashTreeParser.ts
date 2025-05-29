@@ -1,7 +1,64 @@
-import HashTreeParser, { exampleInitialLocus } from '@webex/plugin-meetings/src/hashTree/hashTreeParser';
+import HashTreeParser from '@webex/plugin-meetings/src/hashTree/hashTreeParser';
 import HashTree from '@webex/plugin-meetings/src/hashTree/hashTree';
 import { expect } from "@webex/test-helper-chai";
 
+const exampleInitialLocus = {
+  dataSets: [
+    {
+      url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f/datasets/main',
+      root: '9bb9d5a911a74d53a915b4dfbec7329f',
+      version: 51118,
+      leafCount: 16,
+      name: 'main',
+    },
+    {
+      url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f/participant/713e9f99/datasets/self',
+      root: '5b8cc7ffda1346d2bfb1c0b60b8ab601',
+      version: 89891,
+      leafCount: 1,
+      name: 'self',
+    },
+    {
+      url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f/datasets/atd-unmuted',
+      root: '9279d2e149da43a1b8e2cd7cbf77f9f0',
+      version: 91277,
+      leafCount: 16,
+      name: 'atd-unmuted',
+    },
+  ],
+  locus: {
+    url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f',
+    meta: {
+      type: 'LOCUS',
+      id: 0,
+      version: 5678,
+      dataSets: ['main'],
+    },
+    participants: [
+      {
+        url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f/participant/11941033',
+        person: {},
+        meta: {
+          type: 'PARTICIPANT',
+          id: 14,
+          version: 5678,
+          dataSets: ['atd-active', 'attendees', 'atd-unmuted'],
+        },
+      },
+    ],
+    self: {
+      url: 'https://locus-a.wbx2.com/locus/api/v1/loci/97d64a5f/participant/11941033',
+      visibleDataSets: ['main', 'self', 'atd-unmuted'],
+      person: {},
+      meta: {
+        type: 'SELF',
+        id: 4,
+        version: 5678,
+        dataSets: ['self'],
+      },
+    },
+  },
+};
 
 describe('HashTreeParser', () => {
   it('should correctly initialize trees from initialLocus data', () => {
