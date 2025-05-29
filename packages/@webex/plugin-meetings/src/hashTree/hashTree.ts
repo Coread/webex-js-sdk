@@ -43,13 +43,14 @@ class HashTree {
   }
 
   /**
-   * Adds or updates a single item in the hash tree.
+   * Internal logic for adding or updating an item, without computing the leaf hash.
    * @param {LeafDataItem} item The item to add or update.
-   * @returns {boolean} True if the item was added or updated, false otherwise (e.g., older version or tree has 0 leaves).
+   * @returns {{put: boolean, index: (number|null)}} Object indicating if put and the leaf index.
+   * @private
    */
-  putItem(item: LeafDataItem): boolean {
+  private _putItemInternal(item: LeafDataItem): {put: boolean; index: number | null} {
     if (this.numLeaves === 0) {
-      return false; // Cannot add to a tree with 0 leaves
+      return {put: false, index: null}; // Cannot add to a tree with 0 leaves
     }
 
     const index = item.id % this.numLeaves;
@@ -62,12 +63,26 @@ class HashTree {
 
     if (!existingItem || existingItem.version < item.version) {
       this.leaves[index][item.type][item.id] = item;
-      this.computeLeafHash(index);
 
-      return true;
+      return {put: true, index};
     }
 
-    return false;
+    return {put: false, index: null};
+  }
+
+  /**
+   * Adds or updates a single item in the hash tree.
+   * @param {LeafDataItem} item The item to add or update.
+   * @returns {boolean} True if the item was added or updated, false otherwise (e.g., older version or tree has 0 leaves).
+   */
+  putItem(item: LeafDataItem): boolean {
+    const {put, index} = this._putItemInternal(item);
+
+    if (put && index !== null) {
+      this.computeLeafHash(index);
+    }
+
+    return put;
   }
 
   /**
@@ -84,20 +99,10 @@ class HashTree {
     const changedLeafIndexes = new Set<number>();
 
     items.forEach((item) => {
-      const index = item.id % this.numLeaves;
-
-      if (!this.leaves[index][item.type]) {
-        this.leaves[index][item.type] = {};
-      }
-
-      const existingItem = this.leaves[index][item.type][item.id];
-
-      if (!existingItem || existingItem.version < item.version) {
-        this.leaves[index][item.type][item.id] = item;
+      const {put, index} = this._putItemInternal(item);
+      results.push(put);
+      if (put && index !== null) {
         changedLeafIndexes.add(index);
-        results.push(true);
-      } else {
-        results.push(false);
       }
     });
 
@@ -109,15 +114,14 @@ class HashTree {
   }
 
   /**
-   * Removes a single item from the hash tree.
-   * The removal is based on matching type, id, and the provided item's version
-   * being greater than or equal to the existing item's version.
+   * Internal logic for removing an item, without computing the leaf hash.
    * @param {LeafDataItem} item The item to remove.
-   * @returns {boolean} True if the item was removed, false otherwise.
+   * @returns {{removed: boolean, index: (number|null)}} Object indicating if removed and the leaf index.
+   * @private
    */
-  removeItem(item: LeafDataItem): boolean {
+  private _removeItemInternal(item: LeafDataItem): {removed: boolean; index: number | null} {
     if (this.numLeaves === 0) {
-      return false;
+      return {removed: false, index: null};
     }
 
     const index = item.id % this.numLeaves;
@@ -128,8 +132,6 @@ class HashTree {
       this.leaves[index][item.type][item.id]
     ) {
       const existingItem = this.leaves[index][item.type][item.id];
-      // Remove if the item exists and the version of the item to remove
-      // is greater than or equal to the existing item's version.
       if (
         existingItem.id === item.id &&
         existingItem.type === item.type &&
@@ -139,13 +141,29 @@ class HashTree {
         if (Object.keys(this.leaves[index][item.type]).length === 0) {
           delete this.leaves[index][item.type];
         }
-        this.computeLeafHash(index);
 
-        return true;
+        return {removed: true, index};
       }
     }
 
-    return false;
+    return {removed: false, index: null};
+  }
+
+  /**
+   * Removes a single item from the hash tree.
+   * The removal is based on matching type, id, and the provided item's version
+   * being greater than or equal to the existing item's version.
+   * @param {LeafDataItem} item The item to remove.
+   * @returns {boolean} True if the item was removed, false otherwise.
+   */
+  removeItem(item: LeafDataItem): boolean {
+    const {removed, index} = this._removeItemInternal(item);
+
+    if (removed && index !== null) {
+      this.computeLeafHash(index);
+    }
+
+    return removed;
   }
 
   /**
@@ -157,32 +175,15 @@ class HashTree {
     if (this.numLeaves === 0 && items.length > 0) {
       return items.map(() => false);
     }
+
     const results: boolean[] = [];
     const changedLeafIndexes = new Set<number>();
 
     items.forEach((item) => {
-      const index = item.id % this.numLeaves;
-
-      if (
-        this.leaves[index] &&
-        this.leaves[index][item.type] &&
-        this.leaves[index][item.type][item.id]
-      ) {
-        const existingItem = this.leaves[index][item.type][item.id];
-        // Remove if the version of the item to remove is strictly greater
-        // than the existing item's version (acting as a tombstone).
-        if (existingItem.version < item.version) {
-          delete this.leaves[index][item.type][item.id];
-          if (Object.keys(this.leaves[index][item.type]).length === 0) {
-            delete this.leaves[index][item.type];
-          }
-          changedLeafIndexes.add(index);
-          results.push(true);
-        } else {
-          results.push(false);
-        }
-      } else {
-        results.push(false);
+      const {removed, index} = this._removeItemInternal(item);
+      results.push(removed);
+      if (removed && index !== null) {
+        changedLeafIndexes.add(index);
       }
     });
 
